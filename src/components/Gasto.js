@@ -44,6 +44,7 @@ const Gasto = ({gasto, setModal, setGasto}) => {
 const styles = StyleSheet.create({
     contenedor : {
         ...globalStyles.contenedor,
+        marginTop : 0,
         marginBottom : 20
     },
     contenido : {
