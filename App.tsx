@@ -1,118 +1,119 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, {useState} from 'react';
+import { StyleSheet, ScrollView, Text, View, Alert, Pressable, Image, Modal } from 'react-native';
+import Header from './src/components/Header';
+import NuevoPresupuesto from './src/components/NuevoPresupuesto';
+import ControlPresupuesto from './src/components/ControlPresupuesto';
+import FormularioGasto from './src/components/FormularioGasto';
+import { generarId } from './src/helpers';
+import ListadoGastos from './src/components/ListadoGastos';
+import Filtro from './src/components/Filtro';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+const App = () => {
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+  const [ isValidPresupuesto, setIsValidPresupuesto ] = useState(false)
+  const [ presupuesto, setPresupuesto ] = useState(0);
+  const [ gastos, setGastos ] = useState([])
+  const [ modal, setModal ] = useState(false)
+  const [ gasto, setGasto ] = useState({})
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+  const handleNuevoPresupuesto = (presupuesto) => {
+    if (Number(presupuesto) > 0) {
+      setIsValidPresupuesto(true)
+    }else{
+      Alert.alert('Error', 'El presupuesto no puede ser 0 o menor')
+    }
+  }
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+  const eliminarGasto = id => {
+    Alert.alert(
+      '¿Deseas Eliminar este gasto?', 
+      'Un gasto eliminado no se puede recuperar', 
+      [
+        { text : 'Cancelar', style : 'cancel' },
+        { text : 'Eliminar', onPress : () => {
+          const gastosActualizados = gastos.filter( gastoState => gastoState.id !== id)
+          setGastos(gastosActualizados)
+          setModal(!modal)
+          setGasto({})
+        }}
+      ])
+  }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const handleGasto = gasto => {
+    if ([gasto.nombre, gasto.cantidad, gasto.categoria].includes('')) {
+      Alert.alert('Error', 'Todos los campos son obligarorios')
+      return
+    }
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+    if (gasto.id) {
+      // Edición para gasto
+      const gastosActualizados = gastos.map( gastoState => gastoState.id === gasto.id ? gasto : gastoState )
+      setGastos(gastosActualizados)
+    }else{
+      // Añadir para nuevo gasto
+      gasto.id = generarId()
+      gasto.fecha = Date.now()
+      setGastos([...gastos, gasto])
+    }
+    setModal(!modal)
+  }
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <View style={styles.contenedor}>
+      <ScrollView>
+        <View style={styles.header}>
+
+          <Header />
+          {isValidPresupuesto ? (
+            <ControlPresupuesto
+              presupuesto={presupuesto}
+              gastos={gastos}
+            />
+          ) : (
+            <NuevoPresupuesto handleNuevoPresupuesto={handleNuevoPresupuesto} presupuesto={presupuesto} setPresupuesto={setPresupuesto} />
+          )}
+
         </View>
+
+        {isValidPresupuesto &&
+          <>
+            <Filtro/>
+            <ListadoGastos gastos={gastos} setModal={setModal} setGasto={setGasto} />
+          </>
+        }
       </ScrollView>
-    </SafeAreaView>
-  );
+
+      {modal && (
+        <Modal animationType='slide' visible={modal} onRequestClose={() => setModal(!modal)}>
+          <FormularioGasto modal={modal} setModal={setModal} handleGasto={handleGasto} gasto={gasto} setGasto={setGasto} eliminarGasto={eliminarGasto} />
+        </Modal>
+      )}
+
+      {isValidPresupuesto && (
+        <Pressable style={styles.presable} onPress={() => setModal(!modal)}>
+          <Image style={styles.imagen} source={require('./src/img/nuevo-gasto.png')} />
+        </Pressable>
+      )}
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  contenedor : {
+    backgroundColor : '#F5F5F5',
+    flex : 1
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  header :{
+    backgroundColor : '#3B82F6',
+    minHeight : 500
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  imagen : {
+    width : 60,
+    height : 60,
+    position : 'absolute',
+    bottom : 30,
+    right : 20,
   },
-  highlight: {
-    fontWeight: '700',
-  },
-});
+})
 
 export default App;
